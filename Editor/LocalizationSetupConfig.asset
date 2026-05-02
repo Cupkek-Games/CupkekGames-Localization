@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54e589bdd3a95544eb6a3a3d27672ee2, type: 3}
+  m_Name: LocalizationSetupConfig
+  m_EditorClassIdentifier: 
+  googleSheetsServiceProvider: {fileID: 11400000, guid: 2f260b71d7b4a9f4a8ab976383515b98, type: 2}
+  spreadsheetId: 1e_rSAwFv41BM8W0d1ASGv3rLpTx9RWcOxvWWGgRlb90
+  keyColumn: A
+  tableCollections:
+  - collection: {fileID: 11400000, guid: 21a6cdf86eec95b4c92e3833d1c821d9, type: 2}
+    sheetId: 522701628
+  - collection: {fileID: 11400000, guid: f89cc6b9fb0c9eb47ac4a4fbcb042a63, type: 2}
+    sheetId: 126080180
+  - collection: {fileID: 11400000, guid: 80789cbe1b80b50408d4089ad2eff83b, type: 2}
+    sheetId: 321274395
+  localeColumns:
+  - column: B
+    locale: {fileID: 11400000, guid: 25841c86b7e213d4b91c7661f5723af8, type: 2}
+    includeComments: 0
+  - column: C
+    locale: {fileID: 11400000, guid: bff1cb20107477848aed709e4d1e7f7e, type: 2}
+    includeComments: 0
+  - column: D
+    locale: {fileID: 11400000, guid: 77c08fc94da3cd44da4478c78579b40d, type: 2}
+    includeComments: 0
+  - column: E
+    locale: {fileID: 11400000, guid: 428893e79894956489b39d2b082451d1, type: 2}
+    includeComments: 0
+  - column: F
+    locale: {fileID: 11400000, guid: b85e55073432be84eb068cc25156ca5b, type: 2}
+    includeComments: 0
+  - column: G
+    locale: {fileID: 11400000, guid: 8aa32f2dd6d05d749b46e5219f811842, type: 2}
+    includeComments: 0
+  - column: H
+    locale: {fileID: 11400000, guid: 921b1383195d825419f5eefe73a7f093, type: 2}
+    includeComments: 0
+  - column: I
+    locale: {fileID: 11400000, guid: 3b9fa5cf88ab0d84781d7aa38e512926, type: 2}
+    includeComments: 0
+  - column: J
+    locale: {fileID: 11400000, guid: a4dcfe4caf18b714ca0be37d95da7bd5, type: 2}
+    includeComments: 0
+  - column: K
+    locale: {fileID: 11400000, guid: c04c239bdbe1c0e42b904c685db5e946, type: 2}
+    includeComments: 0
+  - column: L
+    locale: {fileID: 11400000, guid: db02685666ba4694c9bc670aebf7e26b, type: 2}
+    includeComments: 0
+  - column: M
+    locale: {fileID: 11400000, guid: e260e55b4f427f84bb370b6eda07bad5, type: 2}
+    includeComments: 0
+  - column: N
+    locale: {fileID: 11400000, guid: fe651027ea1936143b6fdd5a0ec41f3b, type: 2}
+    includeComments: 0
+  - column: O
+    locale: {fileID: 11400000, guid: ae82211fdff4a494dae5485b8f94994b, type: 2}
+    includeComments: 0
+  removeMissingPulledKeys: 0

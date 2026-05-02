@@ -1,0 +1,19 @@
+{
+  "name": "com.cupkekgames.localization",
+  "displayName": "CupkekGames Localization",
+  "version": "0.1.0",
+  "author": {
+    "name": "CupkekGames",
+    "url": "https://www.docs.cupkek.games"
+  },
+  "unity": "6000.0",
+  "documentationUrl": "https://docs.cupkek.games/",
+  "description": "Editor tooling around com.unity.localization: import string-table mappings from CSV columns + bulk-config locale + asset-table layout.",
+  "keywords": [
+    "Localization",
+    "Editor",
+    "CSV",
+    "CupkekGames"
+  ],
+  "dependencies": {}
+}

@@ -1,0 +1,63 @@
+.table-item {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    padding: 5px;
+    margin-bottom: 2px;
+}
+
+.table-item-header {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 3px;
+}
+
+.table-item-name {
+    -unity-font-style: bold;
+}
+
+.table-item-id {
+    width: 70px;
+}
+
+.table-item-buttons {
+    flex-direction: row;
+    margin-bottom: 2px;
+}
+
+.table-item-buttons > Button {
+    height: 20px;
+}
+
+.btn-all {
+    width: 40px;
+    background-color: rgb(56, 90, 65);
+}
+
+.btn-missing {
+    width: 55px;
+}
+
+.btn-sheet {
+    width: 45px;
+}
+
+.btn-config {
+    width: 50px;
+}
+
+.table-item-sync-buttons {
+    flex-direction: row;
+}
+
+.table-item-sync-buttons > Button {
+    flex-grow: 1;
+    height: 20px;
+}
+
+.btn-push {
+    background-color: rgb(55, 85, 110);
+}
+
+.btn-pull {
+    background-color: rgb(130, 90, 55);
+}
