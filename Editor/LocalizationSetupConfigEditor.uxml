@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
-    <Style src="project://database/Assets/Plugins/CupkekGames/Localization/Editor/LocalizationSetupConfigEditor.uss?fileID=7433441132597879392&amp;guid=2cfcbaa0326d22448b71e3776c1d49b5&amp;type=3#LocalizationSetupConfigEditor"/>
+    <Style src="project://database/Packages/com.cupkekgames.localization/Editor/LocalizationSetupConfigEditor.uss?fileID=7433441132597879392&amp;guid=2cfcbaa0326d22448b71e3776c1d49b5&amp;type=3#LocalizationSetupConfigEditor"/>
     <ui:VisualElement name="root" style="padding: 10px;">
         <ui:VisualElement name="setup-section" style="margin-bottom: 10px;">
             <ui:Label text="Setup" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 5px;"/>
