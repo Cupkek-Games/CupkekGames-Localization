@@ -6,11 +6,12 @@ Editor tooling around `com.unity.localization`: import string-table mappings fro
 
 **Editor** (`CupkekGames.Localization.Editor.asmdef`)
 
-- `LocalizationSetupConfig` ScriptableObject + custom inspector (`.uxml` / `.uss`)
+- `LocalizationSetupConfig` ScriptableObject + custom inspector (UI Toolkit, built with `CupkekGames.EditorUI`)
 - `LocaleColumnMappingDrawer`, `StringTableCollectionMappingDrawer` — property drawers for CSV→table column mapping
 
 There's also an empty runtime asmdef (`CupkekGames.Localization.asmdef`) kept as a placeholder so the Editor asmdef can stand alone.
 
 ## Dependencies
 
-Asmdef references resolve via Unity's `com.unity.localization` package.
+- `com.unity.localization` — Unity's localization package (String Tables, Google Sheets sync).
+- `com.cupkekgames.editorui` — editor widget/styling library the custom inspector is built with.

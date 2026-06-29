@@ -15,5 +15,7 @@
     "CSV",
     "CupkekGames"
   ],
-  "dependencies": {}
+  "dependencies": {
+    "com.cupkekgames.editorui": "0.1.0"
+  }
 }

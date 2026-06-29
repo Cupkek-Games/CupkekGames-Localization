@@ -1,115 +1,234 @@
-using UnityEditor;
-using UnityEngine;
-using UnityEngine.Localization.Tables;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
+using UnityEditor.UIElements;
+using UnityEngine;
+using UnityEngine.UIElements;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Tables;
 using UnityEditor.Localization;
 using UnityEditor.Localization.Plugins.Google;
 using UnityEditor.Localization.Plugins.Google.Columns;
 using UnityEditor.Localization.Reporting;
-using UnityEngine.UIElements;
-using UnityEditor.UIElements;
+using CupkekGames.EditorUI;
 
 namespace CupkekGames.Localization.Editor
 {
     [CustomEditor(typeof(LocalizationSetupConfig))]
     public class LocalizationSetupConfigEditor : UnityEditor.Editor
     {
-        [SerializeField] private VisualTreeAsset uxmlAsset = default;
+        private LocalizationSetupConfig _config;
 
-        private VisualElement root;
-        private VisualElement perTableContainer;
-        private Foldout perTableFoldout;
-        private Button btnRunAllSetup;
-        private Button btnFindTables;
-        private Button btnCreateMissing;
-        private Button btnSetupSheetIds;
-        private Button btnApplyConfig;
-        private Button btnPushAll;
-        private Button btnPullAll;
+        // Dynamic UI elements refreshed in-place (never rebuilt, so focus/scroll survive).
+        private VisualElement _alertSlot;
+        private Label _summaryLabel;
+        private Button _openSheetButton;
+        private ToolbarSearchField _searchField;
+        private VisualElement _perTableContainer;
+        private string _searchQuery = "";
+
+        // Setup / bulk action buttons (enabled-state driven by Refresh).
+        private Button _btnRunAllSetup;
+        private Button _btnFindTables;
+        private Button _btnCreateMissing;
+        private Button _btnSetupSheetIds;
+        private Button _btnApplyConfig;
+        private Button _btnAutoDetectLocales;
+        private Button _btnPushAll;
+        private Button _btnPullAll;
 
         public override VisualElement CreateInspectorGUI()
         {
-            LocalizationSetupConfig config = (LocalizationSetupConfig)target;
+            _config = (LocalizationSetupConfig)target;
 
-            root = new VisualElement();
+            var root = new VisualElement();
 
+            // Validation banner — sits above everything so the reason actions are gated is visible.
+            _alertSlot = new VisualElement();
+            root.Add(_alertSlot);
+
+            // Editable config fields (provider, spreadsheet id, key/locale columns, table list…).
             InspectorElement.FillDefaultInspector(root, serializedObject, this);
 
-            if (uxmlAsset != null)
-            {
-                var customUI = uxmlAsset.Instantiate();
-                root.Add(customUI);
+            root.Add(EditorUIElements.CreateDivider());
 
-                CacheUIElements(customUI);
-                RegisterCallbacks(config);
-                UpdateButtonStates(config);
-                RebuildPerTableUI(config);
-            }
+            root.Add(BuildSummaryRow());
+            root.Add(BuildSetupSection());
+            root.Add(BuildBulkSection());
+            root.Add(BuildPerTableSection());
 
-            root.TrackSerializedObjectValue(serializedObject, _ =>
-            {
-                UpdateButtonStates(config);
-                RebuildPerTableUI(config);
-            });
+            Refresh();
+
+            root.TrackSerializedObjectValue(serializedObject, _ => Refresh());
 
             return root;
         }
 
-        private void CacheUIElements(VisualElement customUI)
+        #region UI building
+
+        private VisualElement BuildSummaryRow()
         {
-            btnRunAllSetup = customUI.Q<Button>("btn-run-all-setup");
-            btnFindTables = customUI.Q<Button>("btn-find-tables");
-            btnCreateMissing = customUI.Q<Button>("btn-create-missing");
-            btnSetupSheetIds = customUI.Q<Button>("btn-setup-sheet-ids");
-            btnApplyConfig = customUI.Q<Button>("btn-apply-config");
-            btnPushAll = customUI.Q<Button>("btn-push-all");
-            btnPullAll = customUI.Q<Button>("btn-pull-all");
-            perTableFoldout = customUI.Q<Foldout>("per-table-foldout");
-            perTableContainer = customUI.Q<VisualElement>("per-table-container");
+            var row = EditorUIElements.CreateRow(Align.Center, Justify.SpaceBetween);
+            row.style.marginBottom = 4f;
+
+            _summaryLabel = EditorUIElements.CreateHeaderLabel("");
+            row.Add(_summaryLabel);
+
+            _openSheetButton = EditorUIElements.CreateLinkButton("Open Spreadsheet", OpenSpreadsheet);
+            row.Add(_openSheetButton);
+
+            return row;
         }
 
-        private void RegisterCallbacks(LocalizationSetupConfig config)
+        private VisualElement BuildSetupSection()
         {
-            btnRunAllSetup.clicked += () =>
-            {
-                FindAllStringTableCollections(config);
-                CreateMissingLocaleTables(config);
-                AutoSetupSheetIds(config);
-                SetupAllCollections(config);
-                serializedObject.Update();
-                UpdateButtonStates(config);
-                RebuildPerTableUI(config);
-            };
+            var section = new VisualElement();
+            section.style.marginBottom = 6f;
+            section.Add(EditorUIElements.CreateHeaderLabel("Setup"));
 
-            btnFindTables.clicked += () =>
+            _btnRunAllSetup = SolidButton("Run All Setup", EditorSolidColors.Success, EditorSolidColors.SuccessContent, () =>
             {
-                FindAllStringTableCollections(config);
+                FindAllStringTableCollections(_config);
+                CreateMissingLocaleTables(_config);
+                AutoSetupSheetIds(_config);
+                SetupAllCollections(_config);
                 serializedObject.Update();
-                UpdateButtonStates(config);
-                RebuildPerTableUI(config);
-            };
+                Refresh();
+            });
+            _btnRunAllSetup.style.marginTop = 4f;
+            _btnRunAllSetup.style.marginBottom = 4f;
+            section.Add(_btnRunAllSetup);
 
-            btnCreateMissing.clicked += () =>
+            var row1 = EditorUIElements.CreateRow();
+            _btnFindTables = Grow(EditorUIElements.CreateButton("1. Find Tables", () =>
             {
-                CreateMissingLocaleTables(config);
+                FindAllStringTableCollections(_config);
                 serializedObject.Update();
-            };
-
-            btnSetupSheetIds.clicked += () =>
+                Refresh();
+            }));
+            _btnCreateMissing = Grow(EditorUIElements.CreateButton("2. Create Missing", () =>
             {
-                AutoSetupSheetIds(config);
+                CreateMissingLocaleTables(_config);
                 serializedObject.Update();
-                RebuildPerTableUI(config);
-            };
+                Refresh();
+            }));
+            row1.Add(_btnFindTables);
+            row1.Add(_btnCreateMissing);
+            section.Add(row1);
 
-            btnApplyConfig.clicked += () =>
+            var row2 = EditorUIElements.CreateRow();
+            _btnSetupSheetIds = Grow(EditorUIElements.CreateButton("3. Setup Sheet IDs", () =>
             {
-                SetupAllCollections(config);
+                AutoSetupSheetIds(_config);
                 serializedObject.Update();
-            };
+                Refresh();
+            }));
+            _btnApplyConfig = Grow(EditorUIElements.CreateButton("4. Apply Config", () =>
+            {
+                SetupAllCollections(_config);
+                serializedObject.Update();
+                Refresh();
+            }));
+            row2.Add(_btnSetupSheetIds);
+            row2.Add(_btnApplyConfig);
+            section.Add(row2);
 
-            btnPushAll.clicked += () => PushAll(config);
-            btnPullAll.clicked += () => PullAll(config);
+            _btnAutoDetectLocales = EditorUIElements.CreateButton("Auto-detect Locales from Project", AutoDetectLocales);
+            _btnAutoDetectLocales.style.marginTop = 4f;
+            section.Add(_btnAutoDetectLocales);
+
+            return section;
+        }
+
+        private VisualElement BuildBulkSection()
+        {
+            var section = new VisualElement();
+            section.style.marginBottom = 6f;
+            section.Add(EditorUIElements.CreateHeaderLabel("Bulk Operations"));
+
+            var row = EditorUIElements.CreateRow();
+            row.style.marginTop = 4f;
+
+            _btnPushAll = Grow(SolidButton("Push All", EditorSolidColors.Info, EditorSolidColors.InfoContent,
+                () => PushAll(_config)));
+            _btnPullAll = Grow(SolidButton("Pull All", EditorSolidColors.Warning, EditorSolidColors.WarningContent, () =>
+            {
+                if (ConfirmPull("Pull all configured String Table Collections from Google Sheets?"))
+                    PullAll(_config);
+            }));
+            row.Add(_btnPushAll);
+            row.Add(_btnPullAll);
+            section.Add(row);
+
+            return section;
+        }
+
+        private VisualElement BuildPerTableSection()
+        {
+            var foldout = new FoldoutSection("Per-Table Operations", "LocalizationSetupConfig_perTable", true);
+
+            _searchField = new ToolbarSearchField();
+            _searchField.style.marginTop = 4f;
+            _searchField.style.marginBottom = 4f;
+            _searchField.RegisterValueChangedCallback(evt =>
+            {
+                _searchQuery = evt.newValue ?? "";
+                RebuildPerTableUI();
+            });
+            foldout.Content.Add(_searchField);
+
+            _perTableContainer = new VisualElement();
+            foldout.Content.Add(_perTableContainer);
+
+            return foldout;
+        }
+
+        #endregion
+
+        #region Refresh
+
+        private void Refresh()
+        {
+            UpdateValidationBanner();
+            UpdateSummary();
+            UpdateButtonStates(_config);
+            RebuildPerTableUI();
+        }
+
+        private void UpdateValidationBanner()
+        {
+            _alertSlot.Clear();
+
+            bool noProvider = _config.googleSheetsServiceProvider == null;
+            bool noSpreadsheet = string.IsNullOrEmpty(_config.spreadsheetId);
+            if (!noProvider && !noSpreadsheet)
+                return;
+
+            string msg;
+            if (noProvider && noSpreadsheet)
+                msg = "Assign a Google Sheets Service Provider and a Spreadsheet Id to enable Google sync (Run All Setup, Setup Sheet IDs, Push/Pull).";
+            else if (noProvider)
+                msg = "Assign a Google Sheets Service Provider to enable Google sync (Apply Config, Push/Pull, Setup Sheet IDs).";
+            else
+                msg = "Set a Spreadsheet Id to enable Google sync (Run All Setup, Setup Sheet IDs, Push/Pull).";
+
+            var alert = EditorUIElements.CreateAlert(msg, EditorUIElements.StatusType.Warning);
+            alert.style.marginBottom = 6f;
+            _alertSlot.Add(alert);
+        }
+
+        private void UpdateSummary()
+        {
+            int tables = TableMappings.Count(m => m.collection != null);
+            int configured = TableMappings.Count(m => m.collection != null && HasGoogleSheetsExtension(m.collection));
+            int missingLocales = CountMissingLocales();
+
+            _summaryLabel.text =
+                $"{tables} table{Plural(tables)} · {configured} configured · {missingLocales} missing locale{Plural(missingLocales)}";
+
+            _openSheetButton.style.display =
+                string.IsNullOrEmpty(_config.spreadsheetId) ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         private void UpdateButtonStates(LocalizationSetupConfig config)
@@ -118,108 +237,303 @@ namespace CupkekGames.Localization.Editor
                              !string.IsNullOrEmpty(config.spreadsheetId);
             bool hasTables = config.tableCollections != null && config.tableCollections.Count > 0;
 
-            btnRunAllSetup.SetEnabled(canRunAll);
-            btnCreateMissing.SetEnabled(hasTables);
-            btnSetupSheetIds.SetEnabled(canRunAll && hasTables);
-            btnApplyConfig.SetEnabled(config.googleSheetsServiceProvider != null);
-            btnPushAll.SetEnabled(canRunAll && hasTables);
-            btnPullAll.SetEnabled(canRunAll && hasTables);
+            _btnRunAllSetup.SetEnabled(canRunAll);
+            _btnCreateMissing.SetEnabled(hasTables);
+            _btnSetupSheetIds.SetEnabled(canRunAll && hasTables);
+            _btnApplyConfig.SetEnabled(config.googleSheetsServiceProvider != null);
+            _btnPushAll.SetEnabled(canRunAll && hasTables);
+            _btnPullAll.SetEnabled(canRunAll && hasTables);
         }
 
-        private void RebuildPerTableUI(LocalizationSetupConfig config)
+        private void RebuildPerTableUI()
         {
-            if (perTableContainer == null) return;
+            if (_perTableContainer == null) return;
 
-            perTableContainer.Clear();
+            _perTableContainer.Clear();
 
-            if (config.tableCollections == null || config.tableCollections.Count == 0)
-                return;
+            var withCollection = TableMappings.Where(m => m.collection != null).ToList();
 
-            foreach (var mapping in config.tableCollections)
+            if (withCollection.Count == 0)
             {
-                if (mapping.collection == null) continue;
-
-                var tableItem = CreateTableItem(config, mapping);
-                perTableContainer.Add(tableItem);
+                _perTableContainer.Add(BuildEmptyState());
+                return;
             }
+
+            string q = _searchQuery?.Trim() ?? "";
+            var filtered = string.IsNullOrEmpty(q)
+                ? withCollection
+                : withCollection
+                    .Where(m => m.collection.TableCollectionName.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .ToList();
+
+            if (filtered.Count == 0)
+            {
+                _perTableContainer.Add(EditorUIElements.CreateHintLabel($"No tables match '{q}'."));
+                return;
+            }
+
+            foreach (var mapping in filtered)
+                _perTableContainer.Add(CreateTableItem(_config, mapping));
+        }
+
+        private VisualElement BuildEmptyState()
+        {
+            var box = EditorUIElements.CreateBox();
+            box.Add(EditorUIElements.CreateHintLabel(
+                "No String Table Collections tracked yet. Run 'Find Tables' to scan the project."));
+
+            var cta = EditorUIElements.CreateButton("Find Tables", () =>
+            {
+                FindAllStringTableCollections(_config);
+                serializedObject.Update();
+                Refresh();
+            });
+            cta.style.marginTop = 4f;
+            box.Add(cta);
+
+            return box;
         }
 
         private VisualElement CreateTableItem(LocalizationSetupConfig config, StringTableCollectionMapping mapping)
         {
-            var container = new VisualElement();
-            container.AddToClassList("table-item");
-
-            var header = new VisualElement();
-            header.AddToClassList("table-item-header");
-
-            var nameLabel = new Label(mapping.collection.TableCollectionName);
-            nameLabel.AddToClassList("table-item-name");
-            header.Add(nameLabel);
-
-            var idLabel = new Label($"ID: {mapping.sheetId}");
-            idLabel.AddToClassList("table-item-id");
-            header.Add(idLabel);
-
-            container.Add(header);
-
-            var buttonsRow = new VisualElement();
-            buttonsRow.AddToClassList("table-item-buttons");
+            var box = EditorUIElements.CreateBox();
+            box.style.marginBottom = 4f;
 
             GoogleSheetsExtension extension =
                 mapping.collection.Extensions.OfType<GoogleSheetsExtension>().FirstOrDefault();
+            bool configured = extension != null;
             bool canRunAll = config.googleSheetsServiceProvider != null &&
                              !string.IsNullOrEmpty(config.spreadsheetId);
 
-            var btnAll = new Button(() =>
+            // Header: status dot + name (left), sheet-id badge (right).
+            var header = EditorUIElements.CreateRow(Align.Center, Justify.SpaceBetween);
+
+            var left = EditorUIElements.CreateRow(Align.Center);
+            var dot = EditorUIElements.CreateStatusDot(
+                configured ? EditorUIElements.StatusType.Success : EditorUIElements.StatusType.Error);
+            dot.style.marginRight = 6f;
+            dot.tooltip = configured
+                ? "Configured — has a Google Sheets extension"
+                : "Not configured — run Config (or All) to add a Google Sheets extension";
+            left.Add(dot);
+            left.Add(EditorUIElements.CreateHeaderLabel(mapping.collection.TableCollectionName));
+            header.Add(left);
+
+            header.Add(EditorUIElements.CreateBadge($"gid {mapping.sheetId}", EditorUIElements.BadgeStyle.Neutral));
+            box.Add(header);
+
+            // Setup row: All / Missing / Sheet / Config.
+            var setupRow = EditorUIElements.CreateRow();
+            setupRow.style.marginTop = 4f;
+
+            var btnAll = Grow(SolidButton("All", EditorSolidColors.Success, EditorSolidColors.SuccessContent, () =>
             {
                 CreateMissingLocaleTablesSingle(config, mapping);
                 AutoSetupSheetIdSingle(config, mapping);
                 SetupSingleCollection(config, mapping);
                 PushSingle(mapping);
-                RebuildPerTableUI(config);
-            }) { text = "All" };
-            btnAll.AddToClassList("btn-all");
+                Refresh();
+            }));
             btnAll.SetEnabled(canRunAll || extension != null);
-            buttonsRow.Add(btnAll);
 
-            var btnMissing = new Button(() => { CreateMissingLocaleTablesSingle(config, mapping); })
-                { text = "Missing" };
-            btnMissing.AddToClassList("btn-missing");
-            buttonsRow.Add(btnMissing);
+            var btnMissing = Grow(EditorUIElements.CreateButton("Missing", () =>
+            {
+                CreateMissingLocaleTablesSingle(config, mapping);
+                Refresh();
+            }));
 
-            var btnSheet = new Button(() =>
+            var btnSheet = Grow(EditorUIElements.CreateButton("Sheet", () =>
             {
                 AutoSetupSheetIdSingle(config, mapping);
-                RebuildPerTableUI(config);
-            }) { text = "Sheet" };
-            btnSheet.AddToClassList("btn-sheet");
+                Refresh();
+            }));
             btnSheet.SetEnabled(canRunAll);
-            buttonsRow.Add(btnSheet);
 
-            var btnConfig = new Button(() => { SetupSingleCollection(config, mapping); }) { text = "Config" };
-            btnConfig.AddToClassList("btn-config");
+            var btnConfig = Grow(EditorUIElements.CreateButton("Config", () =>
+            {
+                SetupSingleCollection(config, mapping);
+                Refresh();
+            }));
             btnConfig.SetEnabled(config.googleSheetsServiceProvider != null);
-            buttonsRow.Add(btnConfig);
 
-            container.Add(buttonsRow);
+            setupRow.Add(btnAll);
+            setupRow.Add(btnMissing);
+            setupRow.Add(btnSheet);
+            setupRow.Add(btnConfig);
+            box.Add(setupRow);
 
-            var syncRow = new VisualElement();
-            syncRow.AddToClassList("table-item-sync-buttons");
+            // Sync row: Push / Pull.
+            var syncRow = EditorUIElements.CreateRow();
+            syncRow.style.marginTop = 2f;
 
-            var btnPush = new Button(() => PushSingle(mapping)) { text = "Push" };
-            btnPush.AddToClassList("btn-push");
+            var btnPush = Grow(SolidButton("Push", EditorSolidColors.Info, EditorSolidColors.InfoContent,
+                () => PushSingle(mapping)));
             btnPush.SetEnabled(extension != null);
-            syncRow.Add(btnPush);
 
-            var btnPull = new Button(() => PullSingle(mapping)) { text = "Pull" };
-            btnPull.AddToClassList("btn-pull");
+            var btnPull = Grow(SolidButton("Pull", EditorSolidColors.Warning, EditorSolidColors.WarningContent, () =>
+            {
+                if (ConfirmPull($"Pull '{mapping.collection.TableCollectionName}' from Google Sheets?"))
+                    PullSingle(mapping);
+            }));
             btnPull.SetEnabled(extension != null);
+
+            syncRow.Add(btnPush);
             syncRow.Add(btnPull);
+            box.Add(syncRow);
 
-            container.Add(syncRow);
-
-            return container;
+            return box;
         }
+
+        #endregion
+
+        #region UI helpers
+
+        private static Button SolidButton(string text, Color background, Color content, Action onClick)
+        {
+            var btn = EditorUIElements.CreateButton(text, onClick);
+            btn.style.backgroundColor = background;
+            btn.style.color = content;
+            return btn;
+        }
+
+        private static T Grow<T>(T element) where T : VisualElement
+        {
+            element.style.flexGrow = 1;
+            element.style.flexBasis = 0;
+            return element;
+        }
+
+        private static string Plural(int n) => n == 1 ? "" : "s";
+
+        private static bool HasGoogleSheetsExtension(StringTableCollection collection)
+        {
+            return collection.Extensions.OfType<GoogleSheetsExtension>().Any();
+        }
+
+        // Null-safe view of the mapping list (matches the guard UpdateButtonStates uses).
+        private IEnumerable<StringTableCollectionMapping> TableMappings =>
+            _config.tableCollections ?? Enumerable.Empty<StringTableCollectionMapping>();
+
+        private int CountMissingLocales()
+        {
+            var locales = LocalizationEditorSettings.GetLocales();
+            if (locales == null || locales.Count == 0)
+                return 0;
+
+            int missing = 0;
+            foreach (var mapping in TableMappings)
+            {
+                if (mapping.collection == null) continue;
+                foreach (var locale in locales)
+                {
+                    if (!mapping.collection.ContainsTable(locale.Identifier))
+                        missing++;
+                }
+            }
+
+            return missing;
+        }
+
+        private void OpenSpreadsheet()
+        {
+            if (string.IsNullOrEmpty(_config.spreadsheetId))
+                return;
+
+            Application.OpenURL($"https://docs.google.com/spreadsheets/d/{_config.spreadsheetId}");
+        }
+
+        private bool ConfirmPull(string question)
+        {
+            string detail = _config.removeMissingPulledKeys
+                ? "Remove Missing Pulled Keys is ON: local keys absent from the sheet will be DELETED."
+                : "Remove Missing Pulled Keys is OFF: pulling will not delete local keys.";
+
+            return EditorUtility.DisplayDialog("Pull from Google Sheets", $"{question}\n\n{detail}", "Pull", "Cancel");
+        }
+
+        private void AutoDetectLocales()
+        {
+            var locales = LocalizationEditorSettings.GetLocales();
+            if (locales == null || locales.Count == 0)
+            {
+                EditorUtility.DisplayDialog("Auto-detect Locales",
+                    "No Locales found in the project. Add Locales via the Localization Tables window first.", "OK");
+                return;
+            }
+
+            Undo.RecordObject(_config, "Auto-detect Locales");
+
+            var existing = new HashSet<LocaleIdentifier>();
+            foreach (var lc in _config.localeColumns)
+            {
+                if (lc.locale != null)
+                    existing.Add(lc.locale.Identifier);
+            }
+
+            // Place new locale columns after the key column and any columns already mapped.
+            int nextColumn = Math.Max(1, ColumnToIndex(_config.keyColumn));
+            foreach (var lc in _config.localeColumns)
+                nextColumn = Math.Max(nextColumn, ColumnToIndex(lc.column));
+
+            int added = 0;
+            foreach (var locale in locales)
+            {
+                if (locale == null || existing.Contains(locale.Identifier))
+                    continue;
+
+                nextColumn++;
+                _config.localeColumns.Add(new LocaleColumnMapping
+                {
+                    locale = locale,
+                    column = IndexToColumn(nextColumn),
+                    includeComments = false
+                });
+                existing.Add(locale.Identifier);
+                added++;
+            }
+
+            EditorUtility.SetDirty(_config);
+            serializedObject.Update();
+            Refresh();
+
+            Debug.Log($"Auto-detect Locales: added {added} locale column{Plural(added)} " +
+                      $"({locales.Count} project locale{Plural(locales.Count)} found).");
+        }
+
+        // Spreadsheet column <-> 1-based index (A=1, B=2, … Z=26, AA=27).
+        private static int ColumnToIndex(string column)
+        {
+            if (string.IsNullOrEmpty(column))
+                return 0;
+
+            int index = 0;
+            foreach (char c in column.ToUpperInvariant())
+            {
+                if (c < 'A' || c > 'Z') continue;
+                index = index * 26 + (c - 'A' + 1);
+            }
+
+            return index;
+        }
+
+        private static string IndexToColumn(int index)
+        {
+            if (index < 1) index = 1;
+
+            string result = "";
+            while (index > 0)
+            {
+                int remainder = (index - 1) % 26;
+                result = (char)('A' + remainder) + result;
+                index = (index - 1) / 26;
+            }
+
+            return result;
+        }
+
+        #endregion
+
+        #region Operations (unchanged behavior)
 
         private void FindAllStringTableCollections(LocalizationSetupConfig config)
         {
@@ -651,5 +965,7 @@ namespace CupkekGames.Localization.Editor
 
             Debug.Log($"Push completed. Success: {successCount}, Errors: {errorCount}");
         }
+
+        #endregion
     }
 }
