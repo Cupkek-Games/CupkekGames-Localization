@@ -15,13 +15,7 @@ MonoBehaviour:
   googleSheetsServiceProvider: {fileID: 11400000, guid: 2f260b71d7b4a9f4a8ab976383515b98, type: 2}
   spreadsheetId: 1e_rSAwFv41BM8W0d1ASGv3rLpTx9RWcOxvWWGgRlb90
   keyColumn: A
-  tableCollections:
-  - collection: {fileID: 11400000, guid: 21a6cdf86eec95b4c92e3833d1c821d9, type: 2}
-    sheetId: 522701628
-  - collection: {fileID: 11400000, guid: f89cc6b9fb0c9eb47ac4a4fbcb042a63, type: 2}
-    sheetId: 126080180
-  - collection: {fileID: 11400000, guid: 80789cbe1b80b50408d4089ad2eff83b, type: 2}
-    sheetId: 321274395
+  tableCollections: []
   localeColumns:
   - column: B
     locale: {fileID: 11400000, guid: 25841c86b7e213d4b91c7661f5723af8, type: 2}
