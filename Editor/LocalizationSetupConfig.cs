@@ -15,7 +15,7 @@ namespace CupkekGames.Localization.Editor
         public int sheetId;
     }
 
-    [CreateAssetMenu(fileName = "LocalizationSetupConfig", menuName = "Localization/Setup Config")]
+    [CreateAssetMenu(fileName = "LocalizationSetupConfig", menuName = "CupkekGames/Localization/Setup Config")]
     public class LocalizationSetupConfig : ScriptableObject
     {
         public SheetsServiceProvider googleSheetsServiceProvider;
